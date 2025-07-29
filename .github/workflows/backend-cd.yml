@@ -1,0 +1,57 @@
+name: Deploy Spring Boot App to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Write secrets to files
+        run: |
+          echo "${{ secrets.ENV_DOCKER }}" > .env.docker
+          echo "${{ secrets.ENV_MYSQL }}" > .env.mysql
+
+      - name: Copy .env files to VPS
+        run: |
+          scp -o StrictHostKeyChecking=no .env.docker .env.mysql ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/
+
+      - name: Deploy on VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+            set -e
+
+            APP_DIR=/home/$USER/my-app
+
+            if [ ! -d "$APP_DIR" ]; then
+              git clone https://github.com/thiengthb/SWP391_SmokingCessationSupportPlatform_BE.git $APP_DIR
+            fi
+
+            cd $APP_DIR
+            git pull origin main
+
+            mv /home/$USER/.env.docker docker/.env.docker
+            mv /home/$USER/.env.mysql docker/.env.mysql
+
+            echo ".env.mysql:"
+            cat docker/.env.mysql
+
+            echo ".env.docker:"
+            cat docker/.env.docker
+            
+            docker compose -f docker/docker-compose.nginx.yml \
+              --env-file docker/.env.mysql \
+              up -d --build --force-recreate
+
+            docker image prune -af
+          ENDSSH

@@ -1,0 +1,37 @@
+### ROOT ###
+
+.git
+.gitignore
+
+
+
+### BACKEND ###
+
+# Ignore everything except the JAR file
+backend/target/*
+backend/!target/*.jar
+
+# Ignore IDE/editor configs
+backend/.idea
+backend/.vscode
+backend/*.iml
+
+# Ignore build tools
+backend/.gradle
+backend/build/
+
+# Logs and temp files
+backend/*.log
+backend/*.tmp
+
+
+
+### FRONTEND ###
+
+frontend/node_modules
+frontend/.env
+frontend/dist
+
+
+
+### DOCKER ###
